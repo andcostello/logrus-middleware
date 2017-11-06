@@ -66,7 +66,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	h.handler.ServeHTTP(rw, r)
 
-	latency := time.Since(start)
+	elapsed := time.Since(start)
 
 	status := h.status
 	if status == 0 {
@@ -78,7 +78,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		"method":     r.Method,
 		"request":    r.RequestURI,
 		"remote":     r.RemoteAddr,
-		"duration":   float64(latency.Nanoseconds()) / float64(1000),
+		"elapsed_ms": float64(elapsed) / float64(time.Millisecond),
 		"size":       h.size,
 		"referer":    r.Referer(),
 		"user-agent": r.UserAgent(),
