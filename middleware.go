@@ -42,7 +42,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	h.handler.ServeHTTP(lrw, r)
 	elapsed := time.Since(start)
 
-	status = lrw.status
+	status := lrw.status
 	if status == 0 {
 		status = http.StatusOK
 	}
