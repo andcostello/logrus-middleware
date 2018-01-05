@@ -38,14 +38,17 @@ func (m *Middleware) Handler(h http.Handler, component string) *Handler {
 // ServeHTTP calls the "real" handler and logs using the logger
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-
 	lrw := &ResponseWriter{ResponseWriter: rw}
 	h.handler.ServeHTTP(lrw, r)
-
 	elapsed := time.Since(start)
 
+	status = lrw.status
+	if status == 0 {
+		status = http.StatusOK
+	}
+
 	fields := logrus.Fields{
-		"status":     lrw.status,
+		"status":     status,
 		"method":     r.Method,
 		"request":    r.RequestURI,
 		"remote":     r.RemoteAddr,
