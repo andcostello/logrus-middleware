@@ -20,9 +20,6 @@ type (
 
 	// Handler is the actual middleware that handles logging
 	Handler struct {
-		http.ResponseWriter
-		status    int
-		size      int
 		m         *Middleware
 		handler   http.Handler
 		component string
@@ -38,48 +35,22 @@ func (m *Middleware) Handler(h http.Handler, component string) *Handler {
 	}
 }
 
-// Write is a wrapper for the "real" ResponseWriter.Write
-func (h *Handler) Write(b []byte) (int, error) {
-	if h.status == 0 {
-		// The status will be StatusOK if WriteHeader has not been called yet
-		h.status = http.StatusOK
-	}
-	size, err := h.ResponseWriter.Write(b)
-	h.size += size
-	return size, err
-}
-
-// WriteHeader is a wrapper around ResponseWriter.WriteHeader
-func (h *Handler) WriteHeader(s int) {
-	h.ResponseWriter.WriteHeader(s)
-	h.status = s
-}
-
-// Header is a wrapper around ResponseWriter.Header
-func (h *Handler) Header() http.Header {
-	return h.ResponseWriter.Header()
-}
-
 // ServeHTTP calls the "real" handler and logs using the logger
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
-	h.handler.ServeHTTP(rw, r)
+	lrw := &ResponseWriter{ResponseWriter: rw}
+	h.handler.ServeHTTP(lrw, r)
 
 	elapsed := time.Since(start)
 
-	status := h.status
-	if status == 0 {
-		status = 200
-	}
-
 	fields := logrus.Fields{
-		"status":     status,
+		"status":     lrw.status,
 		"method":     r.Method,
 		"request":    r.RequestURI,
 		"remote":     r.RemoteAddr,
 		"elapsed_ms": float64(elapsed) / float64(time.Millisecond),
-		"size":       h.size,
+		"size":       lrw.size,
 		"referer":    r.Referer(),
 		"user-agent": r.UserAgent(),
 	}
@@ -93,8 +64,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if l := h.m.Logger; l != nil {
-		l.WithFields(fields).Info("completed handling request")
+		l.WithFields(fields).Info("request")
 	} else {
-		logrus.WithFields(fields).Info("completed handling request")
+		logrus.WithFields(fields).Info("request")
 	}
 }
